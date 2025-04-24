@@ -2,14 +2,13 @@ package com.org.moviemail.repository;
 
 import com.org.moviemail.entity.Customer;
 import com.org.moviemail.entity.Subscription;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
@@ -17,15 +16,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // ✅ Use real MySQL
-@EntityScan(basePackages = "com.org.moviemail.entity")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // If using real DB (like MySQL/PostgreSQL)
 class SubscriptionRepositoryTest {
 
     @Autowired
     private SubscriptionRepository subscriptionRepository;
 
     @Autowired
-    private TestEntityManager testEntityManager;
+    private EntityManager entityManager;
 
     private Customer customer;
     private Subscription subscription;
@@ -36,7 +34,9 @@ class SubscriptionRepositoryTest {
                 .name("Alice")
                 .email("alice@sub.com")
                 .build();
-        testEntityManager.persist(customer);
+
+        entityManager.persist(customer); // Save customer
+        entityManager.flush();
 
         subscription = Subscription.builder()
                 .name("Gold")
@@ -51,7 +51,7 @@ class SubscriptionRepositoryTest {
     @Test
     @DisplayName("Save and retrieve subscription")
     void whenSave_thenRetrieveByCustomerId() {
-        Subscription saved = subscriptionRepository.saveAndFlush(subscription);
+        subscriptionRepository.saveAndFlush(subscription);
 
         List<Subscription> found = subscriptionRepository.findByCustomerId(customer.getId());
 
@@ -61,7 +61,7 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    @DisplayName("Duplicate subscription (same name + customer) should fail if constraint added")
+    @DisplayName("Duplicate subscription throws exception if unique constraint exists")
     void whenDuplicateSubscription_thenThrowException() {
         subscriptionRepository.saveAndFlush(subscription);
 
@@ -74,21 +74,20 @@ class SubscriptionRepositoryTest {
                 .customer(customer)
                 .build();
 
-        // only valid if you've enforced uniqueness at entity level
-        assertThrows(DataIntegrityViolationException.class,
-                () -> subscriptionRepository.saveAndFlush(duplicate));
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            subscriptionRepository.saveAndFlush(duplicate);
+        });
     }
 
     @Test
-    @DisplayName("Delete subscription")
+    @DisplayName("Delete subscription by ID")
     void whenDeleteById_thenRemove() {
         Subscription saved = subscriptionRepository.saveAndFlush(subscription);
-
         subscriptionRepository.deleteById(saved.getId());
-        testEntityManager.flush();
+
+        entityManager.flush();
 
         List<Subscription> remaining = subscriptionRepository.findByCustomerId(customer.getId());
         assertTrue(remaining.isEmpty());
     }
 }
-
