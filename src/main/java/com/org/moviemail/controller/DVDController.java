@@ -5,6 +5,7 @@ import com.org.moviemail.dto.response.DVDResponseDto;
 import com.org.moviemail.service.DVDService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public class DVDController {
 
     private final DVDService dvdService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DVDResponseDto> createDVD(@RequestBody DVDRequestDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
