@@ -8,6 +8,11 @@ import lombok.*;
 @AllArgsConstructor
 @Data
 @Builder
+@Table(
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"name", "customer_id"})
+        }
+)
 public class Subscription {
 
     @Id
