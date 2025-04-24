@@ -16,7 +16,7 @@ services:
       - movenet
 
   moviemail-app:
-    image: nahom20/moviemail:0.0.8
+    image: nahom20/moviemail:0.0.9
     container_name: moviemail
     depends_on:
       - mysql
